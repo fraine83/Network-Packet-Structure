@@ -1,364 +1,515 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Network Packet Structure — IPv4, TCP &amp; UDP</title>
-  <link rel="stylesheet" href="styles.css" />
-</head>
-<body>
-
-  <!-- ══════════════════════════════════════════
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Network Packet Structure — IPv4, TCP &amp; UDP</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <!-- ══════════════════════════════════════════
        Inline SVG Symbol Definitions
        (includes icons.svg content inline so
         external file is also usable standalone)
   ══════════════════════════════════════════ -->
-  <svg xmlns="http://www.w3.org/2000/svg" style="display:none">
-    <symbol id="icon-doc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-      <polyline points="14 2 14 8 20 8"/>
-      <line x1="16" y1="13" x2="8" y2="13"/>
-      <line x1="16" y1="17" x2="8" y2="17"/>
-    </symbol>
-    <symbol id="icon-stack" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-      <polygon points="12 2 2 7 12 12 22 7 12 2"/>
-      <polyline points="2 17 12 22 22 17"/>
-      <polyline points="2 12 12 17 22 12"/>
-    </symbol>
-    <symbol id="icon-pencil" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
-    </symbol>
-    <symbol id="icon-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-    </symbol>
-    <symbol id="icon-zap" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-    </symbol>
-  </svg>
+    <svg xmlns="http://www.w3.org/2000/svg" style="display: none">
+      <symbol
+        id="icon-doc"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.8"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+        <polyline points="14 2 14 8 20 8" />
+        <line x1="16" y1="13" x2="8" y2="13" />
+        <line x1="16" y1="17" x2="8" y2="17" />
+      </symbol>
+      <symbol
+        id="icon-stack"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.8"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <polygon points="12 2 2 7 12 12 22 7 12 2" />
+        <polyline points="2 17 12 22 22 17" />
+        <polyline points="2 12 12 17 22 12" />
+      </symbol>
+      <symbol
+        id="icon-pencil"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.8"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
+      </symbol>
+      <symbol
+        id="icon-shield"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.8"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+      </symbol>
+      <symbol
+        id="icon-zap"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.8"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+      </symbol>
+    </svg>
 
-  <!-- ══════════════════════════════════════════
+    <!-- ══════════════════════════════════════════
        MAIN WRAPPER
   ══════════════════════════════════════════ -->
-  <div class="diagram-wrapper">
+    <div class="diagram-wrapper">
+      <!-- Page Title -->
+      <header class="page-title">
+        <h1>Network Packet Structure</h1>
+        <p class="subtitle">
+          — IPv4, TCP &amp; UDP Headers — Complete &amp; Correct —
+        </p>
+      </header>
 
-    <!-- Page Title -->
-    <header class="page-title">
-      <h1>Network Packet Structure</h1>
-      <p class="subtitle">— IPv4, TCP &amp; UDP Headers — Complete &amp; Correct —</p>
-    </header>
+      <!-- TARGET ENVIRONMENT -->
+      <section class="connection-panel" aria-label="Target Environment">
+        <div class="connection-panel__header">
+          <div>
+            <h2>Target Environment</h2>
+            <p>
+              Connect to a network environment before starting packet capture.
+            </p>
+          </div>
 
+          <span id="connection-status" class="status status--disconnected">
+            Disconnected
+          </span>
+        </div>
 
-    <!-- ══════════════════════════════════════
+        <form id="connection-form" class="connection-form">
+          <div class="form-group">
+            <label for="environment-type">Environment Type</label>
+            <select id="environment-type" name="environmentType">
+              <option value="eve_ng">EVE-NG</option>
+              <option value="linux">Linux Host</option>
+              <option value="network_device">Network Device</option>
+              <option value="remote_environment">Remote / Domain Environment</option>
+            </select>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group form-group--grow">
+              <label id="host-label" for="host">Host / IP Address</label>
+              <input
+                type="text"
+                id="host"
+                name="host"
+                placeholder="192.168.1.100"
+                autocomplete="off"
+                required
+              />
+            </div>
+
+            <div class="form-group form-group--port">
+              <label for="port">SSH Port</label>
+              <input
+                type="number"
+                id="port"
+                name="port"
+                value="22"
+                min="1"
+                max="65535"
+                required
+              />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="username">Username</label>
+              <input
+                type="text"
+                id="username"
+                name="username"
+                autocomplete="username"
+                required
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="auth-type">Authentication</label>
+              <select id="auth-type" name="authType">
+                <option value="password">Password</option>
+                <option value="ssh_key">SSH Key</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group" id="password-group">
+            <label for="password">Password</label>
+
+            <input
+              type="password"
+              id="password"
+              name="password"
+              autocomplete="current-password"
+              required
+            />
+          </div>
+
+          <div class="connection-actions">
+            <button type="submit" id="connect-button">Connect</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- ══════════════════════════════════════
          SECTION 1 — IP HEADER (IPv4)
     ══════════════════════════════════════ -->
-    <section class="section section--ip" aria-label="IP Header IPv4">
-
-      <div class="section-header">
-        <svg class="section-header__icon" aria-hidden="true">
-          <use href="#icon-doc"/>
-        </svg>
-        <div>
-          <div class="section-header__title">IP Header (IPv4)</div>
-        </div>
-      </div>
-
-      <div class="section-body">
-
-        <!-- Row 1: Version | IHL | Type of Service | Total Length -->
-        <div class="row">
-          <div class="cell">
-            <span class="cell__label">Version</span>
-            <span class="cell__bits">(4 bits)</span>
-          </div>
-          <div class="cell">
-            <span class="cell__label">Header Length / IHL</span>
-            <span class="cell__bits">(4 bits)</span>
-          </div>
-          <div class="cell cell--span2">
-            <span class="cell__label">Type of Service</span>
-            <span class="cell__bits">(DSCP + ECN) (8 bits)</span>
-          </div>
-          <div class="cell cell--span2">
-            <span class="cell__label">Total Length</span>
-            <span class="cell__bits">(16 bits)</span>
+      <section class="section section--ip" aria-label="IP Header IPv4">
+        <div class="section-header">
+          <svg class="section-header__icon" aria-hidden="true">
+            <use href="#icon-doc" />
+          </svg>
+          <div>
+            <div class="section-header__title">IP Header (IPv4)</div>
           </div>
         </div>
 
-        <!-- Row 2: Identification | Flags | Fragment Offset -->
-        <div class="row row--flags">
-          <div class="cell cell--span3">
-            <span class="cell__label">Identification</span>
-            <span class="cell__bits">(16 bits)</span>
-          </div>
-          <div class="cell">
-            <span class="cell__label" style="margin-bottom:4px;">Flags (3 bits)</span>
-            <div class="ip-flags-group">
-              <div class="ip-flag">R</div>
-              <div class="ip-flag">DF</div>
-              <div class="ip-flag">MF</div>
+        <div class="section-body">
+          <!-- Row 1: Version | IHL | Type of Service | Total Length -->
+          <div class="row">
+            <div class="cell">
+              <span class="cell__label">Version</span>
+              <span class="cell__bits">(4 bits)</span>
+            </div>
+            <div class="cell">
+              <span class="cell__label">Header Length / IHL</span>
+              <span class="cell__bits">(4 bits)</span>
+            </div>
+            <div class="cell cell--span2">
+              <span class="cell__label">Type of Service</span>
+              <span class="cell__bits">(DSCP + ECN) (8 bits)</span>
+            </div>
+            <div class="cell cell--span2">
+              <span class="cell__label">Total Length</span>
+              <span class="cell__bits">(16 bits)</span>
             </div>
           </div>
-          <div class="cell cell--span3">
-            <span class="cell__label">Fragment Offset</span>
-            <span class="cell__bits">(13 bits)</span>
+
+          <!-- Row 2: Identification | Flags | Fragment Offset -->
+          <div class="row row--flags">
+            <div class="cell cell--span3">
+              <span class="cell__label">Identification</span>
+              <span class="cell__bits">(16 bits)</span>
+            </div>
+            <div class="cell">
+              <span class="cell__label" style="margin-bottom: 4px"
+                >Flags (3 bits)</span
+              >
+              <div class="ip-flags-group">
+                <div class="ip-flag">R</div>
+                <div class="ip-flag">DF</div>
+                <div class="ip-flag">MF</div>
+              </div>
+            </div>
+            <div class="cell cell--span3">
+              <span class="cell__label">Fragment Offset</span>
+              <span class="cell__bits">(13 bits)</span>
+            </div>
+          </div>
+
+          <!-- Row 3: TTL | Protocol | Header Checksum -->
+          <div class="row">
+            <div class="cell cell--span2">
+              <span class="cell__label">Time To Live (TTL)</span>
+              <span class="cell__bits">(8 bits)</span>
+            </div>
+            <div class="cell cell--span2">
+              <span class="cell__label">Protocol</span>
+              <span class="cell__bits">(8 bits)</span>
+            </div>
+            <div class="cell cell--span3">
+              <span class="cell__label">Header Checksum</span>
+              <span class="cell__bits">(16 bits)</span>
+            </div>
+          </div>
+
+          <!-- Row 4: Source IP | Destination IP -->
+          <div class="row">
+            <div class="cell cell--span3">
+              <span class="cell__label">Source IP Address</span>
+              <span class="cell__bits">(32 bits)</span>
+            </div>
+            <div class="cell cell--span3">
+              <span class="cell__label">Destination IP Address</span>
+              <span class="cell__bits">(32 bits)</span>
+            </div>
+          </div>
+
+          <!-- Row 5: Options | Padding -->
+          <div class="row">
+            <div class="cell cell--span4 cell--options">
+              <span class="cell__label">
+                <svg
+                  class="options-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"
+                  />
+                </svg>
+                Options (0–40 bytes)
+              </span>
+            </div>
+            <div class="cell cell--span2 cell--options">
+              <span class="cell__label">Padding (if needed)</span>
+            </div>
           </div>
         </div>
+        <!-- /section-body -->
+      </section>
+      <!-- /IP Header -->
 
-        <!-- Row 3: TTL | Protocol | Header Checksum -->
-        <div class="row">
-          <div class="cell cell--span2">
-            <span class="cell__label">Time To Live (TTL)</span>
-            <span class="cell__bits">(8 bits)</span>
-          </div>
-          <div class="cell cell--span2">
-            <span class="cell__label">Protocol</span>
-            <span class="cell__bits">(8 bits)</span>
-          </div>
-          <div class="cell cell--span3">
-            <span class="cell__label">Header Checksum</span>
-            <span class="cell__bits">(16 bits)</span>
-          </div>
-        </div>
-
-        <!-- Row 4: Source IP | Destination IP -->
-        <div class="row">
-          <div class="cell cell--span3">
-            <span class="cell__label">Source IP Address</span>
-            <span class="cell__bits">(32 bits)</span>
-          </div>
-          <div class="cell cell--span3">
-            <span class="cell__label">Destination IP Address</span>
-            <span class="cell__bits">(32 bits)</span>
-          </div>
-        </div>
-
-        <!-- Row 5: Options | Padding -->
-        <div class="row">
-          <div class="cell cell--span4 cell--options">
-            <span class="cell__label">
-              <svg class="options-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
-              </svg>
-              Options (0–40 bytes)
-            </span>
-          </div>
-          <div class="cell cell--span2 cell--options">
-            <span class="cell__label">Padding (if needed)</span>
-          </div>
-        </div>
-
-      </div><!-- /section-body -->
-    </section><!-- /IP Header -->
-
-
-    <!-- ══════════════════════════════════════
+      <!-- ══════════════════════════════════════
          SECTION 2 — TCP HEADER
     ══════════════════════════════════════ -->
-    <section class="section section--tcp" aria-label="TCP Header">
-
-      <div class="section-header">
-        <svg class="section-header__icon" aria-hidden="true">
-          <use href="#icon-shield"/>
-        </svg>
-        <div>
-          <div class="section-header__title">TCP Header</div>
-        </div>
-      </div>
-
-      <div class="section-body">
-
-        <!-- Row 1: Source Port | Destination Port -->
-        <div class="row">
-          <div class="cell">
-            <span class="cell__label">Source Port</span>
-            <span class="cell__bits">(16 bits)</span>
-          </div>
-          <div class="cell">
-            <span class="cell__label">Destination Port</span>
-            <span class="cell__bits">(16 bits)</span>
+      <section class="section section--tcp" aria-label="TCP Header">
+        <div class="section-header">
+          <svg class="section-header__icon" aria-hidden="true">
+            <use href="#icon-shield" />
+          </svg>
+          <div>
+            <div class="section-header__title">TCP Header</div>
           </div>
         </div>
 
-        <!-- Row 2: Sequence Number -->
-        <div class="row">
-          <div class="cell cell--full">
-            <span class="cell__label">Sequence Number</span>
-            <span class="cell__bits">(32 bits)</span>
+        <div class="section-body">
+          <!-- Row 1: Source Port | Destination Port -->
+          <div class="row">
+            <div class="cell">
+              <span class="cell__label">Source Port</span>
+              <span class="cell__bits">(16 bits)</span>
+            </div>
+            <div class="cell">
+              <span class="cell__label">Destination Port</span>
+              <span class="cell__bits">(16 bits)</span>
+            </div>
           </div>
-        </div>
 
-        <!-- Row 3: Acknowledgment Number -->
-        <div class="row">
-          <div class="cell cell--full">
-            <span class="cell__label">Acknowledgment Number</span>
-            <span class="cell__bits">(32 bits)</span>
+          <!-- Row 2: Sequence Number -->
+          <div class="row">
+            <div class="cell cell--full">
+              <span class="cell__label">Sequence Number</span>
+              <span class="cell__bits">(32 bits)</span>
+            </div>
           </div>
-        </div>
 
-        <!-- Row 4: Data Offset | Reserved | Flags -->
-        <div class="row row--flags">
-          <div class="cell">
-            <span class="cell__label">Data Offset</span>
-            <span class="cell__label" style="font-size:0.6rem;opacity:0.7;">(Header Length)</span>
-            <span class="cell__bits">(4 bits)</span>
+          <!-- Row 3: Acknowledgment Number -->
+          <div class="row">
+            <div class="cell cell--full">
+              <span class="cell__label">Acknowledgment Number</span>
+              <span class="cell__bits">(32 bits)</span>
+            </div>
           </div>
-          <div class="cell">
-            <span class="cell__label">Reserved</span>
-            <span class="cell__bits">(3 bits)</span>
+
+          <!-- Row 4: Data Offset | Reserved | Flags -->
+          <div class="row row--flags">
+            <div class="cell">
+              <span class="cell__label">Data Offset</span>
+              <span class="cell__label" style="font-size: 0.6rem; opacity: 0.7"
+                >(Header Length)</span
+              >
+              <span class="cell__bits">(4 bits)</span>
+            </div>
+            <div class="cell">
+              <span class="cell__label">Reserved</span>
+              <span class="cell__bits">(3 bits)</span>
+            </div>
+            <div class="cell cell--span4">
+              <span class="cell__label" style="margin-bottom: 5px"
+                >Flags (6 bits)</span
+              >
+              <div class="flags-group">
+                <div class="flag-cell flag--urg">URG</div>
+                <div class="flag-cell flag--ack">ACK</div>
+                <div class="flag-cell flag--psh">PSH</div>
+                <div class="flag-cell flag--rst">RST</div>
+                <div class="flag-cell flag--syn">SYN</div>
+                <div class="flag-cell flag--fin">FIN</div>
+              </div>
+            </div>
           </div>
-          <div class="cell cell--span4">
-            <span class="cell__label" style="margin-bottom:5px;">Flags (6 bits)</span>
-            <div class="flags-group">
-              <div class="flag-cell flag--urg">URG</div>
-              <div class="flag-cell flag--ack">ACK</div>
-              <div class="flag-cell flag--psh">PSH</div>
-              <div class="flag-cell flag--rst">RST</div>
-              <div class="flag-cell flag--syn">SYN</div>
-              <div class="flag-cell flag--fin">FIN</div>
+
+          <!-- Row 5: Window Size | Checksum -->
+          <div class="row">
+            <div class="cell">
+              <span class="cell__label">Window Size</span>
+              <span class="cell__bits">(16 bits)</span>
+            </div>
+            <div class="cell">
+              <span class="cell__label">Checksum</span>
+              <span class="cell__bits">(16 bits)</span>
+            </div>
+          </div>
+
+          <!-- Row 6: Urgent Pointer -->
+          <div class="row">
+            <div class="cell cell--full">
+              <span class="cell__label">Urgent Pointer</span>
+              <span class="cell__bits">(16 bits)</span>
+            </div>
+          </div>
+
+          <!-- Row 7: Options | Padding -->
+          <div class="row">
+            <div class="cell cell--span4 cell--options">
+              <span class="cell__label">
+                <svg
+                  class="options-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"
+                  />
+                </svg>
+                Options (0–40 bytes)
+              </span>
+            </div>
+            <div class="cell cell--span2 cell--options">
+              <span class="cell__label">Padding (if needed)</span>
             </div>
           </div>
         </div>
+        <!-- /section-body -->
+      </section>
+      <!-- /TCP Header -->
 
-        <!-- Row 5: Window Size | Checksum -->
-        <div class="row">
-          <div class="cell">
-            <span class="cell__label">Window Size</span>
-            <span class="cell__bits">(16 bits)</span>
-          </div>
-          <div class="cell">
-            <span class="cell__label">Checksum</span>
-            <span class="cell__bits">(16 bits)</span>
-          </div>
-        </div>
-
-        <!-- Row 6: Urgent Pointer -->
-        <div class="row">
-          <div class="cell cell--full">
-            <span class="cell__label">Urgent Pointer</span>
-            <span class="cell__bits">(16 bits)</span>
-          </div>
-        </div>
-
-        <!-- Row 7: Options | Padding -->
-        <div class="row">
-          <div class="cell cell--span4 cell--options">
-            <span class="cell__label">
-              <svg class="options-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
-              </svg>
-              Options (0–40 bytes)
-            </span>
-          </div>
-          <div class="cell cell--span2 cell--options">
-            <span class="cell__label">Padding (if needed)</span>
-          </div>
-        </div>
-
-      </div><!-- /section-body -->
-    </section><!-- /TCP Header -->
-
-
-    <!-- ══════════════════════════════════════
+      <!-- ══════════════════════════════════════
          SECTION 3 — UDP HEADER
     ══════════════════════════════════════ -->
-    <section class="section section--udp" aria-label="UDP Header">
-
-      <div class="section-header">
-        <svg class="section-header__icon" aria-hidden="true">
-          <use href="#icon-zap"/>
-        </svg>
-        <div>
-          <div class="section-header__title">UDP Header</div>
-        </div>
-      </div>
-
-      <div class="section-body">
-
-        <!-- Row 1: Source Port | Destination Port -->
-        <div class="row">
-          <div class="cell">
-            <span class="cell__label">Source Port</span>
-            <span class="cell__bits">(16 bits)</span>
-          </div>
-          <div class="cell">
-            <span class="cell__label">Destination Port</span>
-            <span class="cell__bits">(16 bits)</span>
+      <section class="section section--udp" aria-label="UDP Header">
+        <div class="section-header">
+          <svg class="section-header__icon" aria-hidden="true">
+            <use href="#icon-zap" />
+          </svg>
+          <div>
+            <div class="section-header__title">UDP Header</div>
           </div>
         </div>
 
-        <!-- Row 2: Length | Checksum -->
-        <div class="row">
-          <div class="cell">
-            <span class="cell__label">Length</span>
-            <span class="cell__bits">(16 bits)</span>
+        <div class="section-body">
+          <!-- Row 1: Source Port | Destination Port -->
+          <div class="row">
+            <div class="cell">
+              <span class="cell__label">Source Port</span>
+              <span class="cell__bits">(16 bits)</span>
+            </div>
+            <div class="cell">
+              <span class="cell__label">Destination Port</span>
+              <span class="cell__bits">(16 bits)</span>
+            </div>
           </div>
-          <div class="cell">
-            <span class="cell__label">Checksum</span>
-            <span class="cell__bits">(16 bits)</span>
+
+          <!-- Row 2: Length | Checksum -->
+          <div class="row">
+            <div class="cell">
+              <span class="cell__label">Length</span>
+              <span class="cell__bits">(16 bits)</span>
+            </div>
+            <div class="cell">
+              <span class="cell__label">Checksum</span>
+              <span class="cell__bits">(16 bits)</span>
+            </div>
           </div>
         </div>
+        <!-- /section-body -->
+      </section>
+      <!-- /UDP Header -->
 
-      </div><!-- /section-body -->
-    </section><!-- /UDP Header -->
-
-
-    <!-- ══════════════════════════════════════
+      <!-- ══════════════════════════════════════
          LEGEND
     ══════════════════════════════════════ -->
-    <footer class="legend" aria-label="Legend">
-      <div class="legend__grid">
+      <footer class="legend" aria-label="Legend">
+        <div class="legend__grid">
+          <div class="legend__item legend__item--ip">
+            <span class="legend__key">R</span>
+            <span class="legend__sep">=</span>
+            <span class="legend__val">Reserved (0)</span>
+          </div>
+          <div class="legend__item legend__item--ip">
+            <span class="legend__key">DF</span>
+            <span class="legend__sep">=</span>
+            <span class="legend__val">Don't Fragment</span>
+          </div>
+          <div class="legend__item legend__item--ip">
+            <span class="legend__key">MF</span>
+            <span class="legend__sep">=</span>
+            <span class="legend__val">More Fragments</span>
+          </div>
 
-        <div class="legend__item legend__item--ip">
-          <span class="legend__key">R</span>
-          <span class="legend__sep">=</span>
-          <span class="legend__val">Reserved (0)</span>
+          <div class="legend__item legend__item--urg">
+            <span class="legend__key">URG</span>
+            <span class="legend__sep">=</span>
+            <span class="legend__val">Urgent</span>
+          </div>
+          <div class="legend__item legend__item--ack">
+            <span class="legend__key">ACK</span>
+            <span class="legend__sep">=</span>
+            <span class="legend__val">Acknowledgment</span>
+          </div>
+          <div class="legend__item legend__item--psh">
+            <span class="legend__key">PSH</span>
+            <span class="legend__sep">=</span>
+            <span class="legend__val">Push</span>
+          </div>
+          <div class="legend__item legend__item--rst">
+            <span class="legend__key">RST</span>
+            <span class="legend__sep">=</span>
+            <span class="legend__val">Reset</span>
+          </div>
+          <div class="legend__item legend__item--syn">
+            <span class="legend__key">SYN</span>
+            <span class="legend__sep">=</span>
+            <span class="legend__val">Synchronize</span>
+          </div>
+          <div class="legend__item legend__item--fin">
+            <span class="legend__key">FIN</span>
+            <span class="legend__sep">=</span>
+            <span class="legend__val">Finish</span>
+          </div>
         </div>
-        <div class="legend__item legend__item--ip">
-          <span class="legend__key">DF</span>
-          <span class="legend__sep">=</span>
-          <span class="legend__val">Don't Fragment</span>
-        </div>
-        <div class="legend__item legend__item--ip">
-          <span class="legend__key">MF</span>
-          <span class="legend__sep">=</span>
-          <span class="legend__val">More Fragments</span>
-        </div>
-
-        <div class="legend__item legend__item--urg">
-          <span class="legend__key">URG</span>
-          <span class="legend__sep">=</span>
-          <span class="legend__val">Urgent</span>
-        </div>
-        <div class="legend__item legend__item--ack">
-          <span class="legend__key">ACK</span>
-          <span class="legend__sep">=</span>
-          <span class="legend__val">Acknowledgment</span>
-        </div>
-        <div class="legend__item legend__item--psh">
-          <span class="legend__key">PSH</span>
-          <span class="legend__sep">=</span>
-          <span class="legend__val">Push</span>
-        </div>
-        <div class="legend__item legend__item--rst">
-          <span class="legend__key">RST</span>
-          <span class="legend__sep">=</span>
-          <span class="legend__val">Reset</span>
-        </div>
-        <div class="legend__item legend__item--syn">
-          <span class="legend__key">SYN</span>
-          <span class="legend__sep">=</span>
-          <span class="legend__val">Synchronize</span>
-        </div>
-        <div class="legend__item legend__item--fin">
-          <span class="legend__key">FIN</span>
-          <span class="legend__sep">=</span>
-          <span class="legend__val">Finish</span>
-        </div>
-
-      </div>
-    </footer>
-
-  </div><!-- /diagram-wrapper -->
-
-</body>
+      </footer>
+    </div>
+    <!-- /diagram-wrapper -->
+     <script src="js/app.js"></script>
+  </body>
 </html>
