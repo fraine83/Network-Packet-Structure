@@ -1,106 +1,105 @@
-// =============================================
-// DOM REFERENCES
-// =============================================
-
-const connectionForm = document.getElementById("connection-form");
 const connectButton = document.getElementById("connect-button");
 const connectionStatus = document.getElementById("connection-status");
-
-const environmentType = document.getElementById("environment-type");
-const hostLabel = document.getElementById("host-label");
-const hostInput = document.getElementById("host");
+const authenticationStage = document.getElementById("authentication-stage");
+const authenticateButton = document.getElementById("authenticate-button");
 
 
-// =============================================
-// ENVIRONMENT FORM
-// =============================================
-
-environmentType.addEventListener("change", updateEnvironmentForm);
-
-function updateEnvironmentForm() {
-
-    switch (environmentType.value) {
-
-        case "eve_ng":
-            hostLabel.textContent = "EVE-NG Host / IP Address";
-            hostInput.placeholder = "192.168.20.13";
-            break;
-
-        case "linux":
-            hostLabel.textContent = "Linux Host / FQDN";
-            hostInput.placeholder = "server.example.com";
-            break;
-
-        case "network_device":
-            hostLabel.textContent = "Device IP / FQDN";
-            hostInput.placeholder = "192.168.20.1";
-            break;
-
-        case "remote_environment":
-            hostLabel.textContent = "Domain / Access FQDN";
-            hostInput.placeholder = "access.example.net";
-            break;
-
-        default:
-            hostLabel.textContent = "Host / IP Address";
-            hostInput.placeholder = "192.168.1.100";
-    }
-
-    hostInput.value = "";
-}
-
-
-// =============================================
-// CONNECTION FORM
-// =============================================
-
-connectionForm.addEventListener("submit", async (event) => {
-
-    event.preventDefault();
+// ============================================================
+// TARGET REACHABILITY
+// ============================================================
+connectButton.addEventListener("click", async () => {
 
     const connectionData = {
-        environmentType: environmentType.value,
-        host: hostInput.value.trim(),
-        port: Number(document.getElementById("port").value),
-        username: document.getElementById("username").value.trim(),
-        authType: document.getElementById("auth-type").value,
-        password: document.getElementById("password").value
+        environmentType: document.getElementById("environment-type").value,
+        host: document.getElementById("host").value.trim(),
+        port: Number(document.getElementById("port").value)
     };
 
-    console.log("Connection request:", {
-        ...connectionData,
-        password: connectionData.password ? "[REDACTED]" : ""
-    });
+    if (!connectionData.environmentType || !connectionData.host) {
+        console.error("Environment type and host are required.");
+        return;
+    }
 
-    setConnectionState("connecting");
+    console.log("Reachability request:", connectionData);
+
+    setConnectionState("checking");
 
     try {
+        const result = await checkReachability(connectionData);
 
-        const result = await mockConnect(connectionData);
+        console.log("Reachability result:", result);
 
-        if (!result.connected) {
-            throw new Error(result.error || "Connection failed");
+        if (!result.reachable) {
+            throw new Error(
+                result.error || "Target is not reachable"
+            );
         }
 
-        setConnectionState("connected");
-
-        console.log(
-            "Environment detected:",
-            result.environment
-        );
+        setConnectionState("reachable");
+        authenticationStage.hidden = false;
 
     } catch (error) {
+        console.error("Reachability check failed:", error);
 
-        console.error(error);
-
+        authenticationStage.hidden = true;
         setConnectionState("failed");
     }
 });
 
+// ============================================================
+// AUTHENTICATION
+// ============================================================
 
-// =============================================
-// CONNECTION STATE
-// =============================================
+authenticateButton.addEventListener("click", async () => {
+
+    const authenticationData = {
+        environmentType: document.getElementById("environment-type").value,
+        host: document.getElementById("host").value.trim(),
+        port: Number(document.getElementById("port").value),
+        username: document.getElementById("username").value.trim(),
+        password: document.getElementById("password").value
+    };
+
+    if (!authenticationData.username || !authenticationData.password) {
+        console.error("Username and password are required.");
+        return;
+    }
+
+    console.log("Authentication request:", {
+        environmentType: authenticationData.environmentType,
+        host: authenticationData.host,
+        port: authenticationData.port,
+        username: authenticationData.username,
+        password: "[REDACTED]"
+    });
+
+    authenticateButton.disabled = true;
+    authenticateButton.textContent = "Authenticating...";
+
+    try {
+        const result = await authenticateTarget(authenticationData);
+
+        console.log("Authentication result:", result);
+
+        if (!result.authenticated) {
+            throw new Error(
+                result.error || "Authentication failed"
+            );
+        }
+
+        authenticateButton.textContent = "Authenticated";
+
+    } catch (error) {
+        console.error("Authentication failed:", error);
+
+        authenticateButton.disabled = false;
+        authenticateButton.textContent = "Retry Authentication";
+    }
+});
+
+// ============================================================
+// UI STATE
+// ============================================================
 
 function setConnectionState(state) {
 
@@ -113,73 +112,93 @@ function setConnectionState(state) {
 
     switch (state) {
 
-        case "connecting":
-
-            connectionStatus.textContent = "Connecting...";
+        case "checking":
+            connectionStatus.textContent = "Checking...";
             connectionStatus.classList.add("status--connecting");
 
             connectButton.disabled = true;
-            connectButton.textContent = "Connecting...";
-
+            connectButton.textContent = "Checking...";
             break;
 
-        case "connected":
-
-            connectionStatus.textContent = "Connected";
+        case "reachable":
+            connectionStatus.textContent = "Target Reachable";
             connectionStatus.classList.add("status--connected");
 
             connectButton.disabled = false;
-            connectButton.textContent = "Connected";
-
+            connectButton.textContent = "Check Again";
             break;
 
         case "failed":
-
-            connectionStatus.textContent = "Connection Failed";
+            connectionStatus.textContent = "Target Unreachable";
             connectionStatus.classList.add("status--failed");
 
             connectButton.disabled = false;
             connectButton.textContent = "Retry";
-
             break;
 
         default:
-
             connectionStatus.textContent = "Disconnected";
             connectionStatus.classList.add("status--disconnected");
 
             connectButton.disabled = false;
-            connectButton.textContent = "Connect";
+            connectButton.textContent = "Check Target";
     }
 }
 
 
-// =============================================
-// MOCK CONNECTION
-// Temporary — replaced by Python API later
-// =============================================
+// ============================================================
+// BACKEND API
+// ============================================================
 
-async function mockConnect(connectionData) {
+async function checkReachability(connectionData) {
 
-    // Simulate network/API delay
-    await new Promise(resolve => setTimeout(resolve, 1200));
+    const response = await fetch(
+        "http://127.0.0.1:8000/api/reachability",
+        {
+            method: "POST",
 
-    // Temporary failure test
-    if (connectionData.host === "192.168.20.99") {
+            headers: {
+                "Content-Type": "application/json"
+            },
 
-        return {
-            connected: false,
-            error: "Unable to reach target environment"
-        };
+            body: JSON.stringify({
+                environmentType: connectionData.environmentType,
+                host: connectionData.host,
+                port: connectionData.port
+            })
+        }
+    );
+
+    if (!response.ok) {
+        throw new Error(
+            `Backend API returned HTTP ${response.status}`
+        );
     }
 
-    return {
-        connected: true,
+    return await response.json();
+}
 
-        environment: {
-            type: connectionData.environmentType,
-            hostname: "eve-ng",
-            captureSupported: true
+
+async function authenticateTarget(authenticationData) {
+
+    const response = await fetch(
+        "http://127.0.0.1:8000/api/authenticate",
+        {
+            method: "POST",
+
+            headers: {
+                "Content-Type": "application/json"
+            },
+
+            body: JSON.stringify(authenticationData)
         }
-    };
+    );
+
+    if (!response.ok) {
+        throw new Error(
+            `Backend API returned HTTP ${response.status}`
+        );
+    }
+
+    return await response.json();
 }

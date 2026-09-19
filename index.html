@@ -86,14 +86,14 @@
           — IPv4, TCP &amp; UDP Headers — Complete &amp; Correct —
         </p>
       </header>
-
       <!-- TARGET ENVIRONMENT -->
       <section class="connection-panel" aria-label="Target Environment">
         <div class="connection-panel__header">
           <div>
             <h2>Target Environment</h2>
             <p>
-              Connect to a network environment before starting packet capture.
+              Check target reachability before authenticating to the
+              environment.
             </p>
           </div>
 
@@ -103,19 +103,26 @@
         </div>
 
         <form id="connection-form" class="connection-form">
+          <!-- STAGE 1: TARGET REACHABILITY -->
           <div class="form-group">
             <label for="environment-type">Environment Type</label>
-            <select id="environment-type" name="environmentType">
+
+            <select id="environment-type" name="environmentType" required>
+              <option value="" selected disabled>Select environment...</option>
+
               <option value="eve_ng">EVE-NG</option>
               <option value="linux">Linux Host</option>
               <option value="network_device">Network Device</option>
-              <option value="remote_environment">Remote / Domain Environment</option>
+              <option value="remote_environment">
+                Remote / Domain Environment
+              </option>
             </select>
           </div>
 
           <div class="form-row">
             <div class="form-group form-group--grow">
-              <label id="host-label" for="host">Host / IP Address</label>
+              <label id="host-label" for="host"> Host / IP Address </label>
+
               <input
                 type="text"
                 id="host"
@@ -127,7 +134,8 @@
             </div>
 
             <div class="form-group form-group--port">
-              <label for="port">SSH Port</label>
+              <label for="port">Port</label>
+
               <input
                 type="number"
                 id="port"
@@ -140,41 +148,51 @@
             </div>
           </div>
 
-          <div class="form-row">
-            <div class="form-group">
-              <label for="username">Username</label>
+          <!-- REACHABILITY ACTION -->
+          <div class="connection-actions">
+            <button type="button" id="connect-button">Check Target</button>
+          </div>
+
+          <!-- STAGE 2: AUTHENTICATION -->
+          <div id="authentication-stage" hidden>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="username">Username</label>
+
+                <input
+                  type="text"
+                  id="username"
+                  name="username"
+                  autocomplete="username"
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="auth-type">Authentication</label>
+
+                <select id="auth-type" name="authType">
+                  <option value="password">Password</option>
+                  <option value="ssh_key">SSH Key</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group" id="password-group">
+              <label for="password">Password</label>
+
               <input
-                type="text"
-                id="username"
-                name="username"
-                autocomplete="username"
-                required
+                type="password"
+                id="password"
+                name="password"
+                autocomplete="current-password"
               />
             </div>
 
-            <div class="form-group">
-              <label for="auth-type">Authentication</label>
-              <select id="auth-type" name="authType">
-                <option value="password">Password</option>
-                <option value="ssh_key">SSH Key</option>
-              </select>
+            <div class="connection-actions">
+              <button type="button" id="authenticate-button">
+                Authenticate
+              </button>
             </div>
-          </div>
-
-          <div class="form-group" id="password-group">
-            <label for="password">Password</label>
-
-            <input
-              type="password"
-              id="password"
-              name="password"
-              autocomplete="current-password"
-              required
-            />
-          </div>
-
-          <div class="connection-actions">
-            <button type="submit" id="connect-button">Connect</button>
           </div>
         </form>
       </section>
@@ -510,6 +528,6 @@
       </footer>
     </div>
     <!-- /diagram-wrapper -->
-     <script src="js/app.js"></script>
+    <script src="js/app.js"></script>
   </body>
 </html>
